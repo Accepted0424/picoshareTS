@@ -594,6 +594,39 @@ function htmlPage(): string {
     }
     .flash.ok { background: #e7f8f2; border-color: #82d9be; color: #236a53; }
     .flash.err { background: #fdeef2; border-color: #f3a9bc; color: #8d2a45; }
+    .busy-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .busy-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 14px;
+      padding: 12px 18px;
+      color: #334766;
+      font-weight: 700;
+      box-shadow: 0 10px 34px rgba(28, 45, 78, 0.25);
+    }
+    .busy-spinner {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 3px solid rgba(50, 142, 207, 0.25);
+      border-top-color: #328ecf;
+      animation: busy-spin 0.85s linear infinite;
+    }
+    @keyframes busy-spin {
+      to { transform: rotate(360deg); }
+    }
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -741,6 +774,12 @@ function htmlPage(): string {
       <div id="file-preview-title" class="file-preview-title"></div>
       <img id="file-preview-image" alt="Image preview" />
     </div>
+    <div id="busy-backdrop" class="busy-backdrop hidden" aria-live="polite" aria-busy="true">
+      <div class="busy-card">
+        <span class="busy-spinner" aria-hidden="true"></span>
+        <span id="busy-text">Uploading, please wait...</span>
+      </div>
+    </div>
     <main id="main" tabindex="-1"></main>
   </div>
 
@@ -868,6 +907,7 @@ function htmlPage(): string {
           no_downloads_yet: 'No downloads yet',
           history: 'History',
           session_expired: 'Session expired. Please sign in again.',
+          uploading_wait: 'Uploading, please wait...',
           selected_prefix: 'Selected',
           none: 'None',
           uploaded_by: 'Uploaded by',
@@ -985,6 +1025,7 @@ function htmlPage(): string {
           no_downloads_yet: '暂无下载记录',
           history: '历史',
           session_expired: '会话已过期，请重新登录。',
+          uploading_wait: '正在上传，请稍候...',
           selected_prefix: '已选择',
           none: '无',
           uploaded_by: '上传者',
@@ -1015,6 +1056,8 @@ function htmlPage(): string {
       var filePreview = document.getElementById('file-preview');
       var filePreviewTitle = document.getElementById('file-preview-title');
       var filePreviewImage = document.getElementById('file-preview-image');
+      var busyBackdrop = document.getElementById('busy-backdrop');
+      var busyText = document.getElementById('busy-text');
       var langToggle = document.getElementById('lang-toggle');
 
       function applyStaticTranslations() {
@@ -1046,6 +1089,12 @@ function htmlPage(): string {
         localStorage.setItem('ps_lang', state.lang);
         applyStaticTranslations();
         render();
+      }
+
+      function setBusy(isBusy, text) {
+        busyText.textContent = text || t('uploading_wait');
+        if (isBusy) busyBackdrop.classList.remove('hidden');
+        else busyBackdrop.classList.add('hidden');
       }
 
       function setFlash(text, isError) {
@@ -1386,9 +1435,11 @@ function htmlPage(): string {
             el('button', { class: 'btn neon form-submit', type: 'submit', text: t('upload') }),
           ]),
         );
+        var isUploading = false;
 
         form.addEventListener('submit', async function(evt) {
           evt.preventDefault();
+          if (isUploading) return;
           var hasFile = selectedFile || (fileInput.files && fileInput.files[0]);
           var pastedText = paste.value.trim();
           if (!hasFile && !pastedText) {
@@ -1396,6 +1447,8 @@ function htmlPage(): string {
             return;
           }
 
+          isUploading = true;
+          setBusy(true, t('uploading_wait'));
           var fd = new FormData();
           if (hasFile) fd.append('file', hasFile);
           if (pastedText) fd.append('pastedText', pastedText);
@@ -1414,6 +1467,9 @@ function htmlPage(): string {
             await render();
           } catch (err) {
             setFlash(String(err.message || err), true);
+          } finally {
+            isUploading = false;
+            setBusy(false);
           }
         });
 
@@ -2120,6 +2176,7 @@ const GUEST_I18N: Record<
     upload_limit_exceeded: string;
     file_too_large: string;
     uploaded_files: string;
+    upload_wait: string;
   }
 > = {
   en: {
@@ -2149,6 +2206,7 @@ const GUEST_I18N: Record<
     upload_limit_exceeded: "Upload limit exceeded. You can upload {left} more file(s).",
     file_too_large: "File \"{name}\" is too large. Max allowed is {max} MB.",
     uploaded_files: "Uploaded {count} file(s). URL(s): {urls}{suffix}",
+    upload_wait: "Uploading, please wait...",
   },
   zh: {
     page_title: "访客上传 - PicoShare",
@@ -2177,6 +2235,7 @@ const GUEST_I18N: Record<
     upload_limit_exceeded: "超出上传限制，你还可以上传 {left} 个文件。",
     file_too_large: "文件“{name}”过大，最大允许 {max} MB。",
     uploaded_files: "成功上传 {count} 个文件。URL：{urls}{suffix}",
+    upload_wait: "正在上传，请稍候...",
   },
 };
 
@@ -2319,6 +2378,39 @@ function guestUploadPage(link: GuestLinkRow, message: string | null, isError: bo
       display: flex;
       justify-content: flex-end;
     }
+    .busy-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 95;
+      backdrop-filter: blur(2px);
+    }
+    .busy-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 14px;
+      padding: 12px 18px;
+      color: #334766;
+      font-weight: 700;
+      box-shadow: 0 10px 34px rgba(28, 45, 78, 0.25);
+    }
+    .busy-spinner {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 3px solid rgba(50, 142, 207, 0.25);
+      border-top-color: #328ecf;
+      animation: busy-spin 0.85s linear infinite;
+    }
+    @keyframes busy-spin {
+      to { transform: rotate(360deg); }
+    }
     button[type="submit"] {
       background: transparent;
       position: relative;
@@ -2396,13 +2488,21 @@ function guestUploadPage(link: GuestLinkRow, message: string | null, isError: bo
       <div class="actions"><button type="submit">${escapeHtml(tr.upload)}</button></div>
     </form>
   </main>
+  <div id="guest-busy" class="busy-backdrop hidden" aria-live="polite" aria-busy="true">
+    <div class="busy-card">
+      <span class="busy-spinner" aria-hidden="true"></span>
+      <span>${escapeHtml(tr.upload_wait)}</span>
+    </div>
+  </div>
   <script>
     (function() {
       var form = document.getElementById('guest-form');
       var filesInput = document.getElementById('files');
       var dropZone = document.getElementById('drop-zone');
       var fileList = document.getElementById('file-list');
+      var guestBusy = document.getElementById('guest-busy');
       var selectedFiles = [];
+      var uploading = false;
 
       function syncFileList() {
         if (!selectedFiles.length) {
@@ -2450,10 +2550,17 @@ function guestUploadPage(link: GuestLinkRow, message: string | null, isError: bo
       });
 
       form.addEventListener('submit', function(evt) {
-        if (!selectedFiles.length) return;
         evt.preventDefault();
+        if (uploading) return;
+        uploading = true;
+        guestBusy.classList.remove('hidden');
         var fd = new FormData();
-        selectedFiles.forEach(function(f) { fd.append('files', f); });
+        if (selectedFiles.length) {
+          selectedFiles.forEach(function(f) { fd.append('files', f); });
+        } else if (filesInput.files && filesInput.files.length) {
+          Array.from(filesInput.files).forEach(function(f) { fd.append('files', f); });
+        }
+        fd.append('lang', ${JSON.stringify(lang)});
         var pastedText = document.getElementById('pastedText').value.trim();
         var note = document.getElementById('note').value.trim();
         if (pastedText) fd.append('pastedText', pastedText);
@@ -2464,6 +2571,10 @@ function guestUploadPage(link: GuestLinkRow, message: string | null, isError: bo
             document.open();
             document.write(html);
             document.close();
+          })
+          .catch(function() {
+            uploading = false;
+            guestBusy.classList.add('hidden');
           });
       });
     })();
