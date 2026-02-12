@@ -1,9 +1,10 @@
-FROM node:20-alpine
+ARG BASE_IMAGE=node:20-bookworm-slim
+FROM ${BASE_IMAGE}
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --include=optional
 
 COPY . .
 RUN chmod +x ./scripts/docker-entrypoint.sh
@@ -17,4 +18,3 @@ EXPOSE 8787
 VOLUME ["/data"]
 
 CMD ["./scripts/docker-entrypoint.sh"]
-

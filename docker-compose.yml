@@ -1,0 +1,16 @@
+services:
+  picoshare:
+    image: crpi-b6qs4e4w2w35r631.cn-hangzhou.personal.cr.aliyuncs.com/jiema66/picoshare-ts:latest
+    container_name: picoshare-ts
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      PS_SHARED_SECRET: ${PS_SHARED_SECRET:-mypassword}
+      PORT: 8787
+      HOST: 0.0.0.0
+      PERSIST_DIR: /data
+      DB_NAME: picoshare_db
+    volumes:
+      - ./.docker-data:/data
+

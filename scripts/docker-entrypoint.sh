@@ -28,6 +28,6 @@ npx wrangler d1 execute "${DB_NAME}" \
 echo "Starting worker on ${HOST}:${PORT} with persistence at ${PERSIST_DIR}..."
 exec npx wrangler dev \
   --local \
-  --host "${HOST}" \
+  --ip "${HOST}" \
   --port "${PORT}" \
   --persist-to "${PERSIST_DIR}"
