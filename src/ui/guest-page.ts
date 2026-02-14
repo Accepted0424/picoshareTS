@@ -1,5 +1,6 @@
 import type { GuestLinkRow } from "../lib/core";
 import { escapeHtml } from "../lib/core";
+import guestTemplate from "../templates/guest.html";
 
 export type GuestLang = "en" | "zh";
 
@@ -104,6 +105,15 @@ export function guestText(lang: GuestLang, key: keyof (typeof GUEST_I18N)["en"],
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ""));
 }
 
+
+function renderGuestTemplate(replacements: Record<string, string>): string {
+  let output = guestTemplate;
+  for (const [token, value] of Object.entries(replacements)) {
+    output = output.replaceAll(token, value);
+  }
+  return output;
+}
+
 export function guestUploadPage(link: GuestLinkRow, message: string | null, isError: boolean, lang: GuestLang): string {
   const tr = GUEST_I18N[lang];
   const title = link.label || `${tr.guest_link} ${link.id}`;
@@ -116,326 +126,27 @@ export function guestUploadPage(link: GuestLinkRow, message: string | null, isEr
   const flash = message ? `<div class="flash ${isError ? "err" : "ok"}">${escapeHtml(message)}</div>` : "";
   const nextLang = lang === "en" ? "zh" : "en";
 
-  return `<!doctype html>
-<html lang="${lang === "zh" ? "zh-CN" : "en"}">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>${escapeHtml(tr.page_title)}</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: "Avenir Next", "SF Pro Text", "Segoe UI", sans-serif;
-      color: #2f4161;
-      background:
-        radial-gradient(circle at 18% 86%, rgba(68, 95, 255, 0.5), transparent 30%),
-        radial-gradient(circle at 80% 30%, rgba(243, 173, 233, 0.6), transparent 30%),
-        radial-gradient(circle at 55% 50%, rgba(255, 255, 255, 0.7), transparent 42%),
-        linear-gradient(145deg, #f7f9ff, #eef1f8);
-      min-height: 100vh;
-      padding: 22px;
-      box-sizing: border-box;
-    }
-    .wrap {
-      max-width: 1140px;
-      margin: 0 auto;
-      padding: 16px 36px 28px;
-    }
-    .top-nav {
-      margin: 0 0 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: #2b5cc9;
-      text-decoration: none;
-      border: 1px solid rgba(43, 92, 201, 0.35);
-      border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 14px;
-      font-weight: 600;
-      background: rgba(255, 255, 255, 0.35);
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-    .back-link:hover {
-      transform: translateY(-1px);
-      background: rgba(255, 255, 255, 0.6);
-    }
-    h1 { margin: 0 0 8px; font-size: 50px; letter-spacing: 0.2px; }
-    .hint { color: #6f7d94; margin: 0 0 18px; line-height: 1.5; max-width: 880px; }
-    .flash { margin: 0 0 14px; border: 1px solid; border-radius: 12px; padding: 10px 12px; font-size: 14px; backdrop-filter: blur(10px); }
-    .ok { background: #e8f7f1; color: #1f6b53; border-color: #8dd8bf; }
-    .err { background: #fdeef2; color: #942946; border-color: #f3a9bc; }
-    label { display: block; margin: 10px 0 6px; font-weight: 600; color: #4e5d77; }
-    input, textarea {
-      width: 100%;
-      border: 1px solid rgba(255,255,255,0.72);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 16px;
-      box-sizing: border-box;
-      background: rgba(255,255,255,0.36);
-      color: #40506a;
-      outline: none;
-      backdrop-filter: blur(10px);
-    }
-    input:focus, textarea:focus {
-      border-color: rgba(16, 27, 114, 0.42);
-      box-shadow: 0 0 0 3px rgba(16, 27, 114, 0.12);
-    }
-    textarea { min-height: 150px; resize: vertical; }
-    .drop-zone {
-      margin-top: 6px;
-      min-height: 210px;
-      border: 2px dashed rgba(148, 166, 196, 0.55);
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.24);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-      padding: 18px;
-      color: #4d6081;
-    }
-    .drop-zone.dragover {
-      border-color: rgba(34, 130, 255, 0.95);
-      background: rgba(207, 231, 255, 0.38);
-      box-shadow: inset 0 0 0 2px rgba(53, 143, 255, 0.15);
-    }
-    .dz-primary { font-size: 18px; font-weight: 700; }
-    .dz-secondary { font-size: 13px; color: #6f7d94; }
-    .dz-list {
-      margin-top: 6px;
-      width: 100%;
-      max-width: 760px;
-      font-size: 13px;
-      color: #3f5a9b;
-      max-height: 84px;
-      overflow: auto;
-      text-align: left;
-      border: 1px solid rgba(255,255,255,0.52);
-      border-radius: 10px;
-      padding: 8px 10px;
-      background: rgba(255,255,255,0.35);
-      white-space: pre-line;
-    }
-    .actions {
-      margin-top: 16px;
-      display: flex;
-      justify-content: flex-end;
-    }
-    .busy-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(17, 24, 39, 0.42);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 95;
-      backdrop-filter: blur(2px);
-    }
-    .busy-card {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      border-radius: 14px;
-      padding: 12px 18px;
-      color: #334766;
-      font-weight: 700;
-      box-shadow: 0 10px 34px rgba(28, 45, 78, 0.25);
-    }
-    .busy-spinner {
-      width: 20px;
-      height: 20px;
-      border-radius: 999px;
-      border: 3px solid rgba(50, 142, 207, 0.25);
-      border-top-color: #328ecf;
-      animation: busy-spin 0.85s linear infinite;
-    }
-    @keyframes busy-spin {
-      to { transform: rotate(360deg); }
-    }
-    button[type="submit"] {
-      background: transparent;
-      position: relative;
-      padding: 8px 18px;
-      display: inline-flex;
-      align-items: center;
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid rgb(40, 144, 241);
-      border-radius: 25px;
-      outline: none;
-      overflow: hidden;
-      color: rgb(40, 144, 241);
-      transition: color 0.3s 0.1s ease-out, transform 0.2s ease;
-      text-align: center;
-      min-width: 140px;
-      justify-content: center;
-      z-index: 1;
-    }
-    button[type="submit"]::before {
-      position: absolute;
-      top: 0;
-      left: -5em;
-      right: 0;
-      bottom: 0;
-      margin: auto;
-      content: '';
-      border-radius: 50%;
-      display: block;
-      width: 20em;
-      height: 20em;
-      text-align: center;
-      transition: box-shadow 0.5s ease-out;
-      z-index: -1;
-    }
-    button[type="submit"]:hover {
-      color: #fff;
-      transform: translateY(-1px);
-    }
-    button[type="submit"]:hover::before {
-      box-shadow: inset 0 0 0 10em rgb(40, 144, 241);
-    }
-    .hidden { display: none !important; }
-    @media (max-width: 980px) {
-      .wrap { padding: 8px 12px 24px; }
-      h1 { font-size: 34px; }
-      .drop-zone { min-height: 170px; }
-    }
-  </style>
-</head>
-<body>
-  <main class="wrap">
-    <div class="top-nav">
-      <a class="back-link" href="/">${escapeHtml(tr.back_home)}</a>
-      <a class="back-link" href="?lang=${nextLang}">${escapeHtml(tr.switch_lang)}</a>
-    </div>
-    <h1>${escapeHtml(title)}</h1>
-    <p class="hint">${escapeHtml(tr.hint_prefix)} ${escapeHtml(infoParts.join(" • "))}.</p>
-    ${flash}
-    <form id="guest-form" method="post" enctype="multipart/form-data">
-      <input type="hidden" name="lang" value="${lang}" />
-      <label for="files">${escapeHtml(tr.files)}</label>
-      <input id="files" name="files" type="file" multiple class="hidden" />
-      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="${escapeHtml(tr.drop_choose)}">
-        <div class="dz-primary">${escapeHtml(tr.drop_choose)}</div>
-        <div class="dz-secondary">${escapeHtml(tr.drop_support)}</div>
-        <div id="file-list" class="dz-list">${escapeHtml(tr.no_files)}</div>
-      </div>
-      <label for="pastedText">${escapeHtml(tr.or_paste)}</label>
-      <textarea id="pastedText" name="pastedText" placeholder="${escapeHtml(tr.paste_placeholder)}"></textarea>
-      <label for="note">${escapeHtml(tr.note_optional)}</label>
-      <input id="note" name="note" type="text" maxlength="240" />
-      <div class="actions"><button type="submit">${escapeHtml(tr.upload)}</button></div>
-    </form>
-  </main>
-  <div id="guest-busy" class="busy-backdrop hidden" aria-live="polite" aria-busy="true">
-    <div class="busy-card">
-      <span class="busy-spinner" aria-hidden="true"></span>
-      <span>${escapeHtml(tr.upload_wait)}</span>
-    </div>
-  </div>
-  <script>
-    (function() {
-      var form = document.getElementById('guest-form');
-      var filesInput = document.getElementById('files');
-      var dropZone = document.getElementById('drop-zone');
-      var fileList = document.getElementById('file-list');
-      var guestBusy = document.getElementById('guest-busy');
-      var selectedFiles = [];
-      var uploading = false;
-
-      function syncFileList() {
-        if (!selectedFiles.length) {
-          fileList.textContent = ${JSON.stringify(tr.no_files)};
-          return;
-        }
-        fileList.textContent = selectedFiles.map(function(f, idx) {
-          return (idx + 1) + '. ' + f.name;
-        }).join('\\n');
-      }
-
-      filesInput.addEventListener('change', function() {
-        selectedFiles = Array.from(filesInput.files || []);
-        syncFileList();
-      });
-
-      dropZone.addEventListener('click', function() { filesInput.click(); });
-      dropZone.addEventListener('keydown', function(evt) {
-        if (evt.key === 'Enter' || evt.key === ' ') {
-          evt.preventDefault();
-          filesInput.click();
-        }
-      });
-
-      ['dragenter', 'dragover'].forEach(function(type) {
-        dropZone.addEventListener(type, function(evt) {
-          evt.preventDefault();
-          dropZone.classList.add('dragover');
-        });
-      });
-      ['dragleave', 'dragend'].forEach(function(type) {
-        dropZone.addEventListener(type, function(evt) {
-          evt.preventDefault();
-          dropZone.classList.remove('dragover');
-        });
-      });
-      dropZone.addEventListener('drop', function(evt) {
-        evt.preventDefault();
-        dropZone.classList.remove('dragover');
-        var files = Array.from((evt.dataTransfer && evt.dataTransfer.files) || []);
-        if (files.length) {
-          selectedFiles = files;
-          syncFileList();
-        }
-      });
-
-      form.addEventListener('submit', function(evt) {
-        evt.preventDefault();
-        if (uploading) return;
-        uploading = true;
-        guestBusy.classList.remove('hidden');
-        var fd = new FormData();
-        if (selectedFiles.length) {
-          selectedFiles.forEach(function(f) { fd.append('files', f); });
-        } else if (filesInput.files && filesInput.files.length) {
-          Array.from(filesInput.files).forEach(function(f) { fd.append('files', f); });
-        }
-        fd.append('lang', ${JSON.stringify(lang)});
-        var pastedText = document.getElementById('pastedText').value.trim();
-        var note = document.getElementById('note').value.trim();
-        if (pastedText) fd.append('pastedText', pastedText);
-        if (note) fd.append('note', note);
-        fetch(location.href, { method: 'POST', body: fd })
-          .then(function(r) { return r.text(); })
-          .then(function(html) {
-            document.open();
-            document.write(html);
-            document.close();
-          })
-          .catch(function() {
-            uploading = false;
-            guestBusy.classList.add('hidden');
-          });
-      });
-    })();
-  </script>
-</body>
-</html>`;
+  return renderGuestTemplate({
+    __HTML_LANG__: lang === "zh" ? "zh-CN" : "en",
+    __PAGE_TITLE__: escapeHtml(tr.page_title),
+    __BACK_HOME__: escapeHtml(tr.back_home),
+    __NEXT_LANG__: nextLang,
+    __SWITCH_LANG__: escapeHtml(tr.switch_lang),
+    __TITLE__: escapeHtml(title),
+    __HINT_PREFIX__: escapeHtml(tr.hint_prefix),
+    __INFO_PARTS__: escapeHtml(infoParts.join(" • ")),
+    __FLASH__: flash,
+    __LANG__: lang,
+    __FILES__: escapeHtml(tr.files),
+    __DROP_CHOOSE__: escapeHtml(tr.drop_choose),
+    __DROP_SUPPORT__: escapeHtml(tr.drop_support),
+    __NO_FILES__: escapeHtml(tr.no_files),
+    __OR_PASTE__: escapeHtml(tr.or_paste),
+    __PASTE_PLACEHOLDER__: escapeHtml(tr.paste_placeholder),
+    __NOTE_OPTIONAL__: escapeHtml(tr.note_optional),
+    __UPLOAD__: escapeHtml(tr.upload),
+    __UPLOAD_WAIT__: escapeHtml(tr.upload_wait),
+    __NO_FILES_JSON__: JSON.stringify(tr.no_files),
+    __LANG_JSON__: JSON.stringify(lang),
+  });
 }
-

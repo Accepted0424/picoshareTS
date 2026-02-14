@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="__HTML_LANG__">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>__PAGE_TITLE__</title>
+  <link rel="stylesheet" href="/guest.css" />
+</head>
+<body>
+  <main class="wrap">
+    <div class="top-nav">
+      <a class="back-link" href="/">__BACK_HOME__</a>
+      <a class="back-link" href="?lang=__NEXT_LANG__">__SWITCH_LANG__</a>
+    </div>
+    <h1>__TITLE__</h1>
+    <p class="hint">__HINT_PREFIX__ __INFO_PARTS__.</p>
+    __FLASH__
+    <form id="guest-form" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="lang" value="__LANG__" />
+      <label for="files">__FILES__</label>
+      <input id="files" name="files" type="file" multiple class="hidden" />
+      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="__DROP_CHOOSE__">
+        <div class="dz-primary">__DROP_CHOOSE__</div>
+        <div class="dz-secondary">__DROP_SUPPORT__</div>
+        <div id="file-list" class="dz-list">__NO_FILES__</div>
+      </div>
+      <label for="pastedText">__OR_PASTE__</label>
+      <textarea id="pastedText" name="pastedText" placeholder="__PASTE_PLACEHOLDER__"></textarea>
+      <label for="note">__NOTE_OPTIONAL__</label>
+      <input id="note" name="note" type="text" maxlength="240" />
+      <div class="actions"><button type="submit">__UPLOAD__</button></div>
+    </form>
+  </main>
+  <div id="guest-busy" class="busy-backdrop hidden" aria-live="polite" aria-busy="true">
+    <div class="busy-card">
+      <span class="busy-spinner" aria-hidden="true"></span>
+      <span>__UPLOAD_WAIT__</span>
+    </div>
+  </div>
+  <script>
+    window.__PS_GUEST__ = { noFiles: __NO_FILES_JSON__, lang: __LANG_JSON__ };
+  </script>
+  <script src="/guest.js" defer></script>
+</body>
+</html>
